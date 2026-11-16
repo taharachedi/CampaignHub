@@ -1,0 +1,678 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CampaignHub | Dashboard</title>
+  <style>
+    :root {
+      font-family: Arial, sans-serif;
+      color: #17243a;
+      background: #f3f6fb;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    header {
+      background: #142b50;
+      color: white;
+      padding: 24px 6%;
+    }
+    header h1 { margin: 0 0 6px; }
+    header p { margin: 0; color: #cbd7e8; }
+    main {
+      max-width: 1200px;
+      margin: auto;
+      padding: 28px 20px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .card, section {
+      background: white;
+      border-radius: 12px;
+      padding: 22px;
+      box-shadow: 0 3px 12px #17243a0b;
+    }
+    .card span { color: #65748b; }
+    .card strong {
+      display: block;
+      font-size: 34px;
+      margin-top: 12px;
+    }
+    section { margin-top: 22px; overflow-x: auto; }
+    .heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    button {
+      background: #2458c6;
+      color: white;
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover { filter: brightness(.9); }
+    button:disabled { opacity: .55; cursor: wait; }
+    .btn-green { background: #187448; }
+    .btn-red { background: #b42318; }
+    .btn-gray { background: #64748b; }
+    .btn-small {
+      padding: 7px 10px;
+      font-size: 12px;
+      margin: 2px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+    th, td {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 1px solid #e9edf4;
+    }
+    th { color: #65748b; font-size: 13px; }
+    .tag {
+      display: inline-block;
+      padding: 6px 9px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .tag-attente, .tag-brouillon {
+      background: #fff0cf;
+      color: #916000;
+    }
+    .tag-envoyee, .tag-active {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .tag-terminee {
+      background: #e5e7eb;
+      color: #374151;
+    }
+    .success { color: #187448; }
+    .error { color: #b42318; }
+    .message { margin-top: 15px; }
+
+    .formulaire {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 7px;
+      font-weight: bold;
+      font-size: 13px;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 11px;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      font: inherit;
+    }
+    textarea { resize: vertical; }
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    [hidden] { display: none !important; }
+    @media(max-width: 850px) {
+      .stats, .form-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media(max-width: 650px) {
+      .stats, .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+<header>
+  <h1>CampaignHub</h1>
+  <p>Gestion des campagnes et relances clients</p>
+</header>
+
+<main>
+  <div class="stats">
+    <div class="card">
+      <span>Clients</span>
+      <strong id="totalClients">0</strong>
+    </div>
+    <div class="card">
+      <span>Relances générées</span>
+      <strong id="totalRelances">0</strong>
+    </div>
+    <div class="card">
+      <span>Clients actifs</span>
+      <strong id="clientsActifs">0</strong>
+    </div>
+    <div class="card">
+      <span>Campagnes</span>
+      <strong id="totalCampaigns">0</strong>
+    </div>
+  </div>
+
+  <section>
+    <div class="heading">
+      <h2>Traitement automatique</h2>
+      <button id="runButton" onclick="executerBatch()">
+        Lancer les relances
+      </button>
+    </div>
+    <p>
+      Spring Batch sélectionne les clients actifs
+      dont le dernier contact dépasse 30 jours.
+    </p>
+    <div id="message" class="message" role="status"></div>
+  </section>
+
+  <section>
+    <div class="heading">
+      <h2>Clients</h2>
+      <button onclick="chargerDonnees()">Actualiser</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Email</th>
+          <th>Dernier contact</th>
+          <th>Actif</th>
+        </tr>
+      </thead>
+      <tbody id="clientsTable"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Relances</h2>
+    <div id="relanceMessage" class="message" role="status"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>Client</th>
+          <th>Email</th>
+          <th>Jours</th>
+          <th>Statut</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="relancesTable"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <div class="heading">
+      <h2>Gestion des campagnes</h2>
+      <div>
+        <button class="btn-green" onclick="ouvrirCreation()">
+          + Nouvelle campagne
+        </button>
+        <button onclick="chargerCampagnes()">Actualiser</button>
+      </div>
+    </div>
+
+    <div id="campaignMessage" class="message" role="status"></div>
+
+    <div id="formulaireCampagne" class="formulaire" hidden>
+      <h3 id="titreFormulaire">Nouvelle campagne</h3>
+
+      <form id="campaignForm" onsubmit="sauvegarderCampagne(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="campaignName">Nom *</label>
+            <input id="campaignName" required maxlength="200">
+          </div>
+
+          <div class="form-group">
+            <label for="campaignStatut">Statut</label>
+            <select id="campaignStatut">
+              <option value="BROUILLON">BROUILLON</option>
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="TERMINEE">TERMINEE</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="campaignDebut">Date de début</label>
+            <input id="campaignDebut" type="date" required>
+          </div>
+
+          <div class="form-group">
+            <label for="campaignFin">Date de fin</label>
+            <input id="campaignFin" type="date" required>
+          </div>
+
+          <div class="form-group" style="grid-column: 1 / -1">
+            <label for="campaignDescription">Description</label>
+            <textarea id="campaignDescription" rows="3"></textarea>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button id="saveButton" type="submit">
+            Enregistrer
+          </button>
+          <button type="button" class="btn-gray"
+                  onclick="fermerFormulaire()">
+            Annuler
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nom</th>
+          <th>Description</th>
+          <th>Statut</th>
+          <th>Début</th>
+          <th>Fin</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="campaignsTable"></tbody>
+    </table>
+  </section>
+</main>
+
+<script>
+  const API = "/api";
+  let campagnesCache = [];
+  let campagneEnEdition = null;
+
+  function cellule(ligne, valeur) {
+    const td = document.createElement("td");
+    td.textContent = valeur ?? "";
+    ligne.appendChild(td);
+    return td;
+  }
+
+  function badgeStatut(statut) {
+    const badge = document.createElement("span");
+    badge.className = "tag";
+
+    if (statut === "ENVOYEE" || statut === "ACTIVE") {
+      badge.classList.add("tag-active");
+    } else if (statut === "TERMINEE") {
+      badge.classList.add("tag-terminee");
+    } else {
+      badge.classList.add("tag-attente");
+    }
+
+    badge.textContent = statut || "Non renseigné";
+    return badge;
+  }
+
+  function afficherMessage(id, texte, erreur = false) {
+    const element = document.getElementById(id);
+    element.className = "message " + (erreur ? "error" : "success");
+    element.textContent = texte;
+  }
+
+  async function chargerDonnees() {
+    try {
+      const [rClients, rRelances] = await Promise.all([
+        fetch(`${API}/clients`),
+        fetch(`${API}/relances`)
+      ]);
+
+      if (!rClients.ok || !rRelances.ok) {
+        throw new Error("Erreur de chargement des données");
+      }
+
+      const clients = await rClients.json();
+      const relances = await rRelances.json();
+
+      document.getElementById("totalClients").textContent =
+        clients.length;
+      document.getElementById("totalRelances").textContent =
+        relances.length;
+      document.getElementById("clientsActifs").textContent =
+        clients.filter(c => c.actif).length;
+
+      const clientsTable = document.getElementById("clientsTable");
+      clientsTable.replaceChildren();
+
+      clients.forEach(c => {
+        const tr = document.createElement("tr");
+        cellule(tr, `${c.prenom} ${c.nom}`);
+        cellule(tr, c.email);
+        cellule(tr, `${c.joursDepuisDernierContact} jours`);
+        cellule(tr, c.actif ? "Oui" : "Non");
+        clientsTable.appendChild(tr);
+      });
+
+      const relancesTable = document.getElementById("relancesTable");
+      relancesTable.replaceChildren();
+
+      relances.forEach(r => {
+        const tr = document.createElement("tr");
+        cellule(tr, `${r.prenom} ${r.nom}`);
+        cellule(tr, r.email);
+        cellule(tr, r.joursDepuisDernierContact);
+
+        const statutTd = document.createElement("td");
+        statutTd.appendChild(badgeStatut(r.statut));
+        tr.appendChild(statutTd);
+
+        const actionTd = document.createElement("td");
+
+        if (r.statut === "A_RELANCER") {
+          const bouton = document.createElement("button");
+          bouton.className = "btn-green btn-small";
+          bouton.textContent = "Marquer comme envoyée";
+          bouton.onclick = async () => {
+            bouton.disabled = true;
+            try {
+              await marquerCommeEnvoyee(r.id);
+            } catch (e) {
+              bouton.disabled = false;
+            }
+          };
+          actionTd.appendChild(bouton);
+        } else {
+          actionTd.textContent =
+            r.statut === "ENVOYEE" ? "Traitée" : "—";
+        }
+
+        tr.appendChild(actionTd);
+        relancesTable.appendChild(tr);
+      });
+
+    } catch (e) {
+      afficherMessage("message", e.message, true);
+      throw e;
+    }
+  }
+
+  async function marquerCommeEnvoyee(id) {
+    const response = await fetch(
+      `${API}/relances/${id}/envoyer`,
+      { method: "PUT" }
+    );
+
+    if (!response.ok) {
+      afficherMessage(
+        "relanceMessage",
+        "Erreur lors de la mise à jour",
+        true
+      );
+      throw new Error("Erreur de mise à jour");
+    }
+
+    await chargerDonnees();
+    afficherMessage(
+      "relanceMessage",
+      `Relance n°${id} marquée comme envoyée.`
+    );
+  }
+
+  async function executerBatch() {
+    const bouton = document.getElementById("runButton");
+    bouton.disabled = true;
+
+    afficherMessage("message", "Traitement en cours...");
+
+    try {
+      const response = await fetch(
+        `${API}/relances/executer`,
+        { method: "POST" }
+      );
+
+      if (!response.ok) {
+        throw new Error("Échec du traitement Batch");
+      }
+
+      const resultat = await response.json();
+      await chargerDonnees();
+
+      afficherMessage(
+        "message",
+        `Job ${resultat.job} : ${resultat.statut}` +
+        ` (exécution ${resultat.executionId})`
+      );
+    } catch (e) {
+      afficherMessage("message", e.message, true);
+    } finally {
+      bouton.disabled = false;
+    }
+  }
+
+  async function chargerCampagnes() {
+    try {
+      const response = await fetch(`${API}/campaigns`);
+
+      if (!response.ok) {
+        throw new Error("Impossible de charger les campagnes");
+      }
+
+      campagnesCache = await response.json();
+
+      document.getElementById("totalCampaigns").textContent =
+        campagnesCache.length;
+
+      const table = document.getElementById("campaignsTable");
+      table.replaceChildren();
+
+      campagnesCache.forEach(c => {
+        const tr = document.createElement("tr");
+
+        cellule(tr, c.id);
+        cellule(tr, c.name);
+        cellule(tr, c.description || "—");
+
+        const statutTd = document.createElement("td");
+        statutTd.appendChild(badgeStatut(c.statut));
+        tr.appendChild(statutTd);
+
+        cellule(tr, c.dateDebut || "—");
+        cellule(tr, c.dateFin || "—");
+
+        const actions = document.createElement("td");
+
+        const modifier = document.createElement("button");
+        modifier.className = "btn-small";
+        modifier.textContent = "Modifier";
+        modifier.onclick = () => ouvrirModification(c.id);
+        actions.appendChild(modifier);
+
+        if (c.statut !== "ACTIVE") {
+          const activer = document.createElement("button");
+          activer.className = "btn-green btn-small";
+          activer.textContent = "Activer";
+          activer.onclick = () => activerCampagne(c.id);
+          actions.appendChild(activer);
+        }
+
+        const supprimer = document.createElement("button");
+        supprimer.className = "btn-red btn-small";
+        supprimer.textContent = "Supprimer";
+        supprimer.onclick = () => supprimerCampagne(c.id);
+        actions.appendChild(supprimer);
+
+        tr.appendChild(actions);
+        table.appendChild(tr);
+      });
+
+    } catch (e) {
+      afficherMessage("campaignMessage", e.message, true);
+    }
+  }
+
+  function ouvrirCreation() {
+    campagneEnEdition = null;
+    document.getElementById("campaignForm").reset();
+    document.getElementById("titreFormulaire").textContent =
+      "Nouvelle campagne";
+    document.getElementById("formulaireCampagne").hidden = false;
+  }
+
+  function ouvrirModification(id) {
+    const campagne = campagnesCache.find(c => c.id === id);
+    if (!campagne) return;
+
+    campagneEnEdition = id;
+
+    document.getElementById("titreFormulaire").textContent =
+      "Modifier la campagne n°" + id;
+
+    document.getElementById("campaignName").value =
+      campagne.name || "";
+    document.getElementById("campaignDescription").value =
+      campagne.description || "";
+    document.getElementById("campaignStatut").value =
+      campagne.statut || "BROUILLON";
+    document.getElementById("campaignDebut").value =
+      campagne.dateDebut || "";
+    document.getElementById("campaignFin").value =
+      campagne.dateFin || "";
+
+    document.getElementById("formulaireCampagne").hidden = false;
+  }
+
+  function fermerFormulaire() {
+    campagneEnEdition = null;
+    document.getElementById("campaignForm").reset();
+    document.getElementById("formulaireCampagne").hidden = true;
+  }
+
+  async function sauvegarderCampagne(event) {
+    event.preventDefault();
+
+    const debut = document.getElementById("campaignDebut").value;
+    const fin = document.getElementById("campaignFin").value;
+
+    if (fin < debut) {
+      afficherMessage(
+        "campaignMessage",
+        "La date de fin doit être après la date de début.",
+        true
+      );
+      return;
+    }
+
+    const donnees = {
+      name: document.getElementById("campaignName").value.trim(),
+      description:
+        document.getElementById("campaignDescription").value.trim(),
+      statut: document.getElementById("campaignStatut").value,
+      dateDebut: debut,
+      dateFin: fin
+    };
+
+    const bouton = document.getElementById("saveButton");
+    bouton.disabled = true;
+
+    try {
+      const modification = campagneEnEdition !== null;
+      const url = modification
+        ? `${API}/campaigns/${campagneEnEdition}`
+        : `${API}/campaigns`;
+
+      const response = await fetch(url, {
+        method: modification ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(donnees)
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Enregistrement impossible (HTTP ${response.status})`
+        );
+      }
+
+      fermerFormulaire();
+      await chargerCampagnes();
+
+      afficherMessage(
+        "campaignMessage",
+        modification
+          ? "Campagne modifiée avec succès."
+          : "Campagne créée avec succès."
+      );
+
+    } catch (e) {
+      afficherMessage("campaignMessage", e.message, true);
+    } finally {
+      bouton.disabled = false;
+    }
+  }
+
+  async function activerCampagne(id) {
+    try {
+      const response = await fetch(
+        `${API}/campaigns/${id}/statut?statut=ACTIVE`,
+        { method: "PUT" }
+      );
+
+      if (!response.ok) {
+        throw new Error("Impossible d'activer la campagne");
+      }
+
+      await chargerCampagnes();
+      afficherMessage(
+        "campaignMessage",
+        `Campagne n°${id} activée avec succès.`
+      );
+
+    } catch (e) {
+      afficherMessage("campaignMessage", e.message, true);
+    }
+  }
+
+  async function supprimerCampagne(id) {
+    if (!confirm(`Supprimer définitivement la campagne n°${id} ?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${API}/campaigns/${id}`,
+        { method: "DELETE" }
+      );
+
+      if (!response.ok) {
+        throw new Error("Impossible de supprimer la campagne");
+      }
+
+      await chargerCampagnes();
+      afficherMessage(
+        "campaignMessage",
+        `Campagne n°${id} supprimée avec succès.`
+      );
+
+    } catch (e) {
+      afficherMessage("campaignMessage", e.message, true);
+    }
+  }
+
+  chargerDonnees().catch(() => {});
+  chargerCampagnes();
+</script>
+</body>
+</html>

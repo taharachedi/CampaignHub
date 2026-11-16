@@ -1,0 +1,58 @@
+
+# Documentation generee
+HELP.md
+
+# Compilation Maven
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Base de donnees H2 locale
+data/
+*.mv.db
+*.trace.db
+*.lock.db
+
+# Logs et fichiers temporaires
+*.log
+logs/
+erreur-demarrage.txt
+*.tmp
+
+# Fichiers de configuration locale
+.env
+.env.*
+!.env.example
+
+# Spring Tool Suite
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Visual Studio Code
+.vscode/
+
+# Fichiers systeme
+.DS_Store
+Thumbs.db
